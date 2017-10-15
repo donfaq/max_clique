@@ -1,6 +1,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
+
 def read_dimacs_graph(file_path):
     '''
         Parse .col file and return graph object
@@ -31,8 +32,22 @@ def read_dimacs_graph(file_path):
         return graph
 
 
+def arguments():
+    import argparse
+    parser = argparse.ArgumentParser(
+        description='Compute maximum clique for a graph')
+    parser.add_argument('--path', type=str, required=True,
+                        help='Path to dimacs-format graph file')
+    return parser.parse_args()
+
+
 def main():
-    read_dimacs_graph('sample_graphs\dsjc250.5.col')
+    args = arguments()
+    graph = read_dimacs_graph(args.path)
+
+    nx.draw_networkx(graph, with_labels=True)
+    plt.savefig('plot.png')
+
 
 if __name__ == '__main__':
     main()
