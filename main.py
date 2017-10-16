@@ -41,11 +41,25 @@ def arguments():
     return parser.parse_args()
 
 
+def clique(graph):
+    from networkx.algorithms.clique import make_max_clique_graph
+    return make_max_clique_graph(graph)
+
+
+def lengths(x):
+    if isinstance(x, list):
+        yield len(x)
+        for y in x:
+            yield from lengths(y)
+
+
 def main():
     args = arguments()
     graph = read_dimacs_graph(args.path)
 
-    nx.draw_networkx(graph, with_labels=True)
+    #print(max(lengths([c for c in clique(graph)])))
+
+    nx.draw_networkx(clique(graph), with_labels=True)
     plt.savefig('plot.png')
 
 
