@@ -82,12 +82,29 @@ def greedy_clique_heuristic(graph):
         nodes = list(filter(lambda x: x in neigh, nodes))
     return K
 
+
 def greedy_coloring_heuristic(graph):
-    colors = range(0, len(graph))
+    '''
+    Greedy graph coloring heuristic with degree order rule
+    '''
+    color_num = iter(range(0, len(graph)))
+    color_map = {}
+    used_colors = set()
     nodes = [node[0] for node in sorted(nx.degree(graph),
                                         key=lambda x: x[1], reverse=True)]
-    print(next(colors))
-    print(next(colors))
+    color_map[nodes.pop(0)] = next(color_num)  # color node with color code
+    used_colors = {i for i in color_map.values()}
+    while len(nodes) != 0:
+        node = nodes.pop(0)
+        neighbors_colors = {color_map[neighbor] for neighbor in
+                      list(filter(lambda x: x in color_map, graph.neighbors(node)))}
+        if len(neighbors_colors) == len(used_colors):
+            color = next(color_num)
+            used_colors.add(color)
+            color_map[node] = color
+        else:
+            color_map[node] = next(iter(used_colors - neighbors_colors))
+    return used_colors
 
 
 def main():
@@ -95,8 +112,9 @@ def main():
     graph = read_dimacs_graph(args.path)
 
     lower_bound = len(greedy_clique_heuristic(graph))
-    print('heuristic clique size', lower_bound)
-    greedy_coloring_heuristic(graph)
+    print('heuristic max clique size', lower_bound)
+    upper_bound = len(greedy_coloring_heuristic(graph))
+    print('heuristic chromatic number', upper_bound)
 
     # print('Maximum cliques:', [i for i in bronk(graph, set(graph.nodes))])
     # print('NetworkX algorithm: ', max(lengths([c for c in clique(graph)])))
