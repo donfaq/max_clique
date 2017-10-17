@@ -1,3 +1,8 @@
+'''
+Find maxumum clique in given dimacs-format graph
+based on:
+http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
+'''
 import networkx as nx
 import matplotlib.pyplot as plt
 import sys
