@@ -10,8 +10,10 @@ import time
 import networkx as nx
 import matplotlib.pyplot as plt
 
-class TimeoutException(Exception): 
+
+class TimeoutException(Exception):
     pass
+
 
 @contextmanager
 def time_limit(seconds):
@@ -24,6 +26,7 @@ def time_limit(seconds):
     finally:
         timer.cancel()
 
+
 def timing(f):
     '''
     Measures time of function execution
@@ -32,9 +35,11 @@ def timing(f):
         time1 = time.time()
         ret = f(*args)
         time2 = time.time()
-        print ('\n{0} function took {1:.3f} ms'.format(f.__name__, (time2-time1)*1000.0))
+        print('\n{0} function took {1:.3f} ms'.format(
+            f.__name__, (time2 - time1) * 1000.0))
         return ret
     return wrap
+
 
 def read_dimacs_graph(file_path):
     '''
@@ -67,10 +72,6 @@ def arguments():
                         help='Path to dimacs-format graph file')
     parser.add_argument('--time', type=int, default=60,
                         help='Time limit in seconds')
-    parser.add_argument('--draw',  action='store_true',
-                        default=False, help='Draw whole graph')
-    parser.add_argument('--draw_clique', action='store_true',
-                        default=False, help='Draw found clique')
     return parser.parse_args()
 
 
@@ -141,12 +142,12 @@ def branching(graph, cur_max_clique_len):
         lambda x: x[1] != max_node_degree and x[1] <= max_node_degree, nodes_by_degree))
     # graph without partial connected node with highest degree
     g1.remove_node(partial_connected_nodes[0][0])
-    g2.remove_nodes_from(  # graph without nodes which is not connected with partial connected node with highest degree
-        graph.nodes() - \
-        graph.neighbors(
-            partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
+    # graph without nodes which is not connected with partial connected node with highest degree
+    g2.remove_nodes_from(  
+        graph.nodes() - graph.neighbors(partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
     )
     return g1, g2
+
 
 def bb_maximum_clique(graph):
     max_clique = greedy_clique_heuristic(graph)
@@ -157,9 +158,11 @@ def bb_maximum_clique(graph):
         g1, g2 = branching(graph, len(max_clique))
         return max(bb_maximum_clique(g1), bb_maximum_clique(g2), key=lambda x: len(x))
 
+
 @timing
 def get_max_clique(graph):
     return bb_maximum_clique(graph)
+
 
 def main():
     args = arguments()
@@ -171,16 +174,6 @@ def main():
             print('\nMaximum clique', max_clq, '\nlen:', len(max_clq))
     except TimeoutException:
         print("Timed out!")
-        max_clq = []
-
-    if args.draw_clique and (len(max_clq) > 0):
-        pos = nx.spring_layout(graph.subgraph(max_clq))
-        nx.draw_networkx(graph.subgraph(max_clq), pos=pos)
-        plt.savefig('clique.png')
-    if args.draw:
-        pos = nx.spring_layout(graph)
-        nx.draw_networkx(graph, pos=pos)
-        plt.savefig('graph.png')
 
 
 if __name__ == '__main__':
