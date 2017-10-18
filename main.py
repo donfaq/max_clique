@@ -6,6 +6,21 @@ http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
 import networkx as nx
 import matplotlib.pyplot as plt
 import sys
+import signal
+from contextlib import contextmanager
+
+class TimeoutException(Exception): pass
+
+@contextmanager
+def time_limit(seconds):
+    def signal_handler(signum, frame):
+        raise TimeoutException("Timed out!")
+    signal.signal(signal.SIGALRM, signal_handler)
+    signal.alarm(seconds)
+    try:
+        yield
+    finally:
+        signal.alarm(0)
 
 
 def read_dimacs_graph(file_path):
@@ -37,20 +52,10 @@ def arguments():
         description='Compute maximum clique for a graph')
     parser.add_argument('--path', type=str, required=True,
                         help='Path to dimacs-format graph file')
-    parser.add_argument('--draw', type=bool, default=False, required=False)
+    parser.add_argument('--time', type=int, default=60, help='Time limit in seconds')
+    parser.add_argument('--draw',  action='store_true', default=False, help='Draw whole graph')
+    parser.add_argument('--draw_clique', action='store_true', default=False, help='Draw found clique')
     return parser.parse_args()
-
-
-def clique(graph):
-    from networkx.algorithms.clique import find_cliques_recursive
-    return find_cliques_recursive(graph)
-
-
-def lengths(x):
-    if isinstance(x, list):
-        yield len(x)
-        for y in x:
-            yield from lengths(y)
 
 
 def bronk(graph, P, R=set(), X=set()):
@@ -97,30 +102,64 @@ def greedy_coloring_heuristic(graph):
     while len(nodes) != 0:
         node = nodes.pop(0)
         neighbors_colors = {color_map[neighbor] for neighbor in
-                      list(filter(lambda x: x in color_map, graph.neighbors(node)))}
+                            list(filter(lambda x: x in color_map, graph.neighbors(node)))}
         if len(neighbors_colors) == len(used_colors):
             color = next(color_num)
             used_colors.add(color)
             color_map[node] = color
         else:
             color_map[node] = next(iter(used_colors - neighbors_colors))
-    return used_colors
+    return len(used_colors)
+
+
+def branching(graph):
+    '''
+    Branching procedure
+    '''
+    g1, g2 = graph.copy(), graph.copy()
+    max_node_degree = len(graph) - 1
+    nodes_by_degree = [node for node in sorted(nx.degree(graph), # All graph nodes sorted by degree (node, degree)
+                                               key=lambda x: x[1], reverse=True)]
+    partial_connected_nodes = list(filter(lambda x: x[1] != max_node_degree, nodes_by_degree)) # Nodes with degree < max possible degree
+    g1.remove_node(partial_connected_nodes[0][0]) # graph without partial connected node with highest degree
+    g2.remove_nodes_from( # graph without nodes which is not connected with partial connected node with highest degree
+        graph.nodes() - graph.neighbors(partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
+    )
+
+    return g1, g2
+
+
+def bb_maximum_clique(graph):
+    max_clique = greedy_clique_heuristic(graph)
+    chromatic_number = greedy_coloring_heuristic(graph)
+    if len(max_clique) == chromatic_number:
+        return max_clique
+    else:
+        g1, g2 = branching(graph)
+        return max(bb_maximum_clique(g1), bb_maximum_clique(g2), key=lambda x: len(x))
 
 
 def main():
     args = arguments()
     graph = read_dimacs_graph(args.path)
 
-    lower_bound = len(greedy_clique_heuristic(graph))
-    print('heuristic max clique size', lower_bound)
-    upper_bound = len(greedy_coloring_heuristic(graph))
-    print('heuristic chromatic number', upper_bound)
+    try:
+        with time_limit(args.time):
+            max_clq = bb_maximum_clique(graph)
+            print('B&B Maximum clique', max_clq, '\nlen:', len(max_clq))
+    except TimeoutException as e:
+        print("Timed out!")
+        max_clq = []
+    
 
-    # print('Maximum cliques:', [i for i in bronk(graph, set(graph.nodes))])
-    # print('NetworkX algorithm: ', max(lengths([c for c in clique(graph)])))
+    if args.draw_clique and (len(max_clq) > 0):
+        pos = nx.spring_layout(graph.subgraph(max_clq))
+        nx.draw_networkx(graph.subgraph(max_clq), pos=pos)
+        plt.savefig('clique.png')
     if args.draw:
-        nx.draw_networkx(graph)
-        plt.savefig('temp.png')
+        pos = nx.spring_layout(graph)
+        nx.draw_networkx(graph, pos=pos)
+        plt.savefig('graph.png')
 
 
 if __name__ == '__main__':
