@@ -112,7 +112,7 @@ def greedy_coloring_heuristic(graph):
     return len(used_colors)
 
 
-def branching(graph):
+def branching(graph, cur_max_clique_len):
     '''
     Branching procedure
     '''
@@ -120,12 +120,11 @@ def branching(graph):
     max_node_degree = len(graph) - 1
     nodes_by_degree = [node for node in sorted(nx.degree(graph), # All graph nodes sorted by degree (node, degree)
                                                key=lambda x: x[1], reverse=True)]
-    partial_connected_nodes = list(filter(lambda x: x[1] != max_node_degree, nodes_by_degree)) # Nodes with degree < max possible degree
+    partial_connected_nodes = list(filter(lambda x: x[1] != max_node_degree and x[1] <= max_node_degree, nodes_by_degree)) # Nodes with (current clique size < degree < max possible degree)
     g1.remove_node(partial_connected_nodes[0][0]) # graph without partial connected node with highest degree
     g2.remove_nodes_from( # graph without nodes which is not connected with partial connected node with highest degree
         graph.nodes() - graph.neighbors(partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
     )
-
     return g1, g2
 
 
@@ -135,7 +134,7 @@ def bb_maximum_clique(graph):
     if len(max_clique) == chromatic_number:
         return max_clique
     else:
-        g1, g2 = branching(graph)
+        g1, g2 = branching(graph, len(max_clique))
         return max(bb_maximum_clique(g1), bb_maximum_clique(g2), key=lambda x: len(x))
 
 
