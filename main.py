@@ -6,25 +6,35 @@ http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
 import threading
 from contextlib import contextmanager
 import _thread
+import time
 import networkx as nx
 import matplotlib.pyplot as plt
 
-class TimeoutException(Exception):
-    def __init__(self, msg=''):
-        self.msg = msg
+class TimeoutException(Exception): 
+    pass
 
 @contextmanager
-def time_limit(seconds, msg=''):
+def time_limit(seconds):
     timer = threading.Timer(seconds, lambda: _thread.interrupt_main())
     timer.start()
     try:
         yield
     except KeyboardInterrupt:
-        raise TimeoutException("Timed out for operation {}".format(msg))
+        raise TimeoutException()
     finally:
-        # if the action ends in specified time, timer is canceled
         timer.cancel()
 
+def timing(f):
+    '''
+    Measures time of function execution
+    '''
+    def wrap(*args):
+        time1 = time.time()
+        ret = f(*args)
+        time2 = time.time()
+        print ('\n{0} function took {1:.3f} ms'.format(f.__name__, (time2-time1)*1000.0))
+        return ret
+    return wrap
 
 def read_dimacs_graph(file_path):
     '''
@@ -138,7 +148,6 @@ def branching(graph, cur_max_clique_len):
     )
     return g1, g2
 
-
 def bb_maximum_clique(graph):
     max_clique = greedy_clique_heuristic(graph)
     chromatic_number = greedy_coloring_heuristic(graph)
@@ -148,6 +157,9 @@ def bb_maximum_clique(graph):
         g1, g2 = branching(graph, len(max_clique))
         return max(bb_maximum_clique(g1), bb_maximum_clique(g2), key=lambda x: len(x))
 
+@timing
+def get_max_clique(graph):
+    return bb_maximum_clique(graph)
 
 def main():
     args = arguments()
@@ -155,9 +167,9 @@ def main():
 
     try:
         with time_limit(args.time):
-            max_clq = bb_maximum_clique(graph)
-            print('B&B Maximum clique', max_clq, '\nlen:', len(max_clq))
-    except TimeoutException as e:
+            max_clq = get_max_clique(graph)
+            print('\nMaximum clique', max_clq, '\nlen:', len(max_clq))
+    except TimeoutException:
         print("Timed out!")
         max_clq = []
 
