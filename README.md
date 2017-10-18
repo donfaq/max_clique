@@ -5,7 +5,7 @@ Realisation of branch and bound algorithm for solving Maximum clique problem usi
 Details: http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
 
 ## Instructions
-This is `Python 3.5.2` realisation with usage of `NetworkX` library 
+This is `Python 3.5.2` realization with usage of `NetworkX` library 
 
 To run script you should specify following parameters:
 - `--path` - path to DIMACS-format graph
