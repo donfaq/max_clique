@@ -3,24 +3,27 @@ Find maxumum clique in given dimacs-format graph
 based on:
 http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
 '''
+import threading
+from contextlib import contextmanager
+import _thread
 import networkx as nx
 import matplotlib.pyplot as plt
-import sys
-import signal
-from contextlib import contextmanager
 
-class TimeoutException(Exception): pass
+class TimeoutException(Exception):
+    def __init__(self, msg=''):
+        self.msg = msg
 
 @contextmanager
-def time_limit(seconds):
-    def signal_handler(signum, frame):
-        raise TimeoutException("Timed out!")
-    signal.signal(signal.SIGALRM, signal_handler)
-    signal.alarm(seconds)
+def time_limit(seconds, msg=''):
+    timer = threading.Timer(seconds, lambda: _thread.interrupt_main())
+    timer.start()
     try:
         yield
+    except KeyboardInterrupt:
+        raise TimeoutException("Timed out for operation {}".format(msg))
     finally:
-        signal.alarm(0)
+        # if the action ends in specified time, timer is canceled
+        timer.cancel()
 
 
 def read_dimacs_graph(file_path):
@@ -52,9 +55,12 @@ def arguments():
         description='Compute maximum clique for a graph')
     parser.add_argument('--path', type=str, required=True,
                         help='Path to dimacs-format graph file')
-    parser.add_argument('--time', type=int, default=60, help='Time limit in seconds')
-    parser.add_argument('--draw',  action='store_true', default=False, help='Draw whole graph')
-    parser.add_argument('--draw_clique', action='store_true', default=False, help='Draw found clique')
+    parser.add_argument('--time', type=int, default=60,
+                        help='Time limit in seconds')
+    parser.add_argument('--draw',  action='store_true',
+                        default=False, help='Draw whole graph')
+    parser.add_argument('--draw_clique', action='store_true',
+                        default=False, help='Draw found clique')
     return parser.parse_args()
 
 
@@ -118,12 +124,17 @@ def branching(graph, cur_max_clique_len):
     '''
     g1, g2 = graph.copy(), graph.copy()
     max_node_degree = len(graph) - 1
-    nodes_by_degree = [node for node in sorted(nx.degree(graph), # All graph nodes sorted by degree (node, degree)
+    nodes_by_degree = [node for node in sorted(nx.degree(graph),  # All graph nodes sorted by degree (node, degree)
                                                key=lambda x: x[1], reverse=True)]
-    partial_connected_nodes = list(filter(lambda x: x[1] != max_node_degree and x[1] <= max_node_degree, nodes_by_degree)) # Nodes with (current clique size < degree < max possible degree)
-    g1.remove_node(partial_connected_nodes[0][0]) # graph without partial connected node with highest degree
-    g2.remove_nodes_from( # graph without nodes which is not connected with partial connected node with highest degree
-        graph.nodes() - graph.neighbors(partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
+    # Nodes with (current clique size < degree < max possible degree)
+    partial_connected_nodes = list(filter(
+        lambda x: x[1] != max_node_degree and x[1] <= max_node_degree, nodes_by_degree))
+    # graph without partial connected node with highest degree
+    g1.remove_node(partial_connected_nodes[0][0])
+    g2.remove_nodes_from(  # graph without nodes which is not connected with partial connected node with highest degree
+        graph.nodes() - \
+        graph.neighbors(
+            partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
     )
     return g1, g2
 
@@ -149,7 +160,6 @@ def main():
     except TimeoutException as e:
         print("Timed out!")
         max_clq = []
-    
 
     if args.draw_clique and (len(max_clq) > 0):
         pos = nx.spring_layout(graph.subgraph(max_clq))
