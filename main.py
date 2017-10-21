@@ -3,6 +3,7 @@ Find maxumum clique in given dimacs-format graph
 based on:
 http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
 '''
+import os
 import threading
 from contextlib import contextmanager
 import _thread
@@ -37,7 +38,7 @@ def timing(f):
         time2 = time.time()
         print('\n{0} function took {1:.3f} ms'.format(
             f.__name__, (time2 - time1) * 1000.0))
-        return ret
+        return (ret, '{0:.3f} ms'.format((time2 - time1) * 1000.0))
     return wrap
 
 
@@ -72,6 +73,7 @@ def arguments():
                         help='Path to dimacs-format graph file')
     parser.add_argument('--time', type=int, default=60,
                         help='Time limit in seconds')
+    parser.add_argument('--test', type=str, default=None, required=False)
     return parser.parse_args()
 
 
@@ -143,8 +145,10 @@ def branching(graph, cur_max_clique_len):
     # graph without partial connected node with highest degree
     g1.remove_node(partial_connected_nodes[0][0])
     # graph without nodes which is not connected with partial connected node with highest degree
-    g2.remove_nodes_from(  
-        graph.nodes() - graph.neighbors(partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
+    g2.remove_nodes_from(
+        graph.nodes() -
+        graph.neighbors(
+            partial_connected_nodes[0][0]) - {partial_connected_nodes[0][0]}
     )
     return g1, g2
 
@@ -164,16 +168,54 @@ def get_max_clique(graph):
     return bb_maximum_clique(graph)
 
 
+def get_files_size_ordered(dirpath):
+    return sorted((os.path.join(basedir, filename)
+                   for basedir, dirs, files in os.walk(dirpath) for filename in files),
+                  key=os.path.getsize)
+
+
+def write_to_xlsx(row, worksheet, f_name, graph, max_clique, max_clique_len, calc_time):
+    print(row, graph.number_of_nodes(), graph.number_of_edges(),
+          max_clique, max_clique_len, calc_time)
+    worksheet.append([f_name, graph.number_of_nodes(), graph.number_of_edges(),
+                      str(max_clique), max_clique_len, calc_time])
+
+
+def run_test(args):
+    from openpyxl import Workbook
+    wb = Workbook()
+    worksheet = wb.active
+    worksheet.append(['filename', 'nodes', 'edges' ,'clique', 'clique length', 'time'])
+    files = get_files_size_ordered(args.test)
+    try:
+        for f in files:
+            graph = read_dimacs_graph(f)
+            try:
+                with time_limit(args.time):
+                    max_clq = get_max_clique(graph)
+                    write_to_xlsx(files.index(f), worksheet, f, graph,
+                                  max_clq[0], len(max_clq[0]), max_clq[1])
+            except TimeoutException:
+                write_to_xlsx(files.index(f), worksheet,
+                              f, graph, 0, 0, 'Timeout')
+    finally:
+        wb.save("test.xlsx")
+
+
 def main():
     args = arguments()
-    graph = read_dimacs_graph(args.path)
 
-    try:
-        with time_limit(args.time):
-            max_clq = get_max_clique(graph)
-            print('\nMaximum clique', max_clq, '\nlen:', len(max_clq))
-    except TimeoutException:
-        print("Timed out!")
+    if args.test:
+        run_test(args)
+    else:
+        graph = read_dimacs_graph(args.path)
+
+        try:
+            with time_limit(args.time):
+                max_clq = get_max_clique(graph)
+                print('\nMaximum clique', max_clq, '\nlen:', len(max_clq))
+        except TimeoutException:
+            print("Timed out!")
 
 
 if __name__ == '__main__':
