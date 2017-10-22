@@ -4,6 +4,7 @@ based on:
 http://www.m-hikari.com/ams/ams-2014/ams-1-4-2014/mamatAMS1-4-2014-3.pdf
 '''
 import os
+import sys
 import threading
 from contextlib import contextmanager
 import _thread
@@ -54,8 +55,6 @@ def read_dimacs_graph(file_path):
             # first line: p name num_of_vertices num_of_edges
             elif line.startswith('p'):
                 p, name, vertices_num, edges_num = line.split()
-                vertices_num = int(vertices_num)
-                edges_num = int(edges_num)
                 print('{0} {1} {2}'.format(name, vertices_num, edges_num))
             elif line.startswith('e'):
                 _, v1, v2 = line.split()
@@ -209,13 +208,13 @@ def main():
         run_test(args)
     else:
         graph = read_dimacs_graph(args.path)
-
         try:
             with time_limit(args.time):
                 max_clq = get_max_clique(graph)
                 print('\nMaximum clique', max_clq, '\nlen:', len(max_clq))
         except TimeoutException:
             print("Timed out!")
+            sys.exit(0)
 
 
 if __name__ == '__main__':
