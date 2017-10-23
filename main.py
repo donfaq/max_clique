@@ -10,7 +10,6 @@ from contextlib import contextmanager
 import _thread
 import time
 import networkx as nx
-import matplotlib.pyplot as plt
 
 
 class TimeoutException(Exception):
