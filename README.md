@@ -30,6 +30,15 @@ le450_15d.col|450|16750|15|50872.791
 le450_25a.col|450|8260|25|340.000
 le450_25c.col|450|17343|25|44315.806
 le450_25d.col|450|17425|25|40426.008
+johnson8-2-4.clq|28|210|4|114.503
+hamming6-4.clq|64|704|4|300.501
+c-fat200-1.clq|200|1534|12|1389.498
+c-fat200-2.clq|200|3235|24|1475.499
+c-fat200-5.clq|200|8473|58|7305.004
+c-fat500-1.clq|500|4459|14|5257.009
+c-fat500-2.clq|500|9139|26|20467.029
+c-fat500-5.clq|500|23191|64|52392.166
+c-fat500-10.clq|500|46627|126|65.000
 
 All this graphs are placed in `samples` folder. <br>More of them you can find here: http://mat.gsia.cmu.edu/COLOR/instances.html <br>
 Huge ones: http://iridia.ulb.ac.be/~fmascia/maximum_clique/DIMACS-benchmark#detC125.9
