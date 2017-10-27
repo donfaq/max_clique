@@ -10,7 +10,7 @@ This is `Python 3.5.2` realization with usage of `NetworkX` library
 To run script you should specify following parameters:
 - `--path` - path to DIMACS-format graph
 - `--time` - time limit in seconds
-
+- `--test` - path to folder with graphs, generates excel-table with results on exit. (still need to specify `--path` just for nothing)
 
 ## Test results
 
