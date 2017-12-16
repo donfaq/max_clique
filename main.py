@@ -172,18 +172,10 @@ def get_files_size_ordered(dirpath):
                   key=os.path.getsize)
 
 
-def write_to_xlsx(row, worksheet, f_name, graph, max_clique, max_clique_len, calc_time):
-    print(row, graph.number_of_nodes(), graph.number_of_edges(),
-          max_clique, max_clique_len, calc_time)
-    worksheet.append([f_name, graph.number_of_nodes(), graph.number_of_edges(),
-                      str(max_clique), max_clique_len, calc_time])
-
-
 def run_test(args):
-    from openpyxl import Workbook
-    wb = Workbook()
-    worksheet = wb.active
-    worksheet.append(['filename', 'nodes', 'edges' ,'clique', 'clique length', 'time'])
+    import pandas as pd
+    test_results = pd.DataFrame(
+        columns=['filename', 'nodes', 'edges', 'clique', 'clique length', 'time'])
     files = get_files_size_ordered(args.test)
     try:
         for f in files:
@@ -191,13 +183,18 @@ def run_test(args):
             try:
                 with time_limit(args.time):
                     max_clq = get_max_clique(graph)
-                    write_to_xlsx(files.index(f), worksheet, f, graph,
-                                  max_clq[0], len(max_clq[0]), max_clq[1])
+                    test_results = test_results.append({'filename': f, 'nodes': graph.number_of_nodes(),
+                                                        'edges': graph.number_of_edges(), 'clique': str(max_clq[0]),
+                                                        'clique length': len(max_clq[0]), 'time': max_clq[1]},
+                                                       ignore_index=True)
+                    test_results.to_excel('test_results.xlsx')
             except TimeoutException:
-                write_to_xlsx(files.index(f), worksheet,
-                              f, graph, 0, 0, 'Timeout')
+                test_results = test_results.append({'filename': f, 'nodes': graph.number_of_nodes(),
+                                                    'edges': graph.number_of_edges(), 'clique': 0,
+                                                    'clique length': 0, 'time': 'TIMEOUT'},
+                                                   ignore_index=True)
     finally:
-        wb.save("test.xlsx")
+        test_results.to_excel('test_results.xlsx')
 
 
 def main():
