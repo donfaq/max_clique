@@ -1,3 +1,5 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 '''
 Find maxumum clique in given dimacs-format graph
 based on:
